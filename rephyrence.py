@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 import argparse
 import sys
@@ -11,8 +11,7 @@ import nested_clade
 import pandas as pd
 import numpy as np
 import scipy
-# from sklearn.preprocessing import StandardScaler
-import scipy.stats
+from scipy import stats
 import matplotlib.pyplot as plt
 
 
@@ -64,7 +63,11 @@ class Rephyrence(object):
         self.read_tree()
         self.print_tree_length()
         self.get_branch_lengths(self.dendropy_tree.seed_node)
-        print(self.branch_lengths)
+        # print(self.branch_lengths)
+        # self.model_distribution()
+
+        self.make_branch_length_df()
+        self.branch_lengths_histogram()
 
     def _exit_handler(self):
         '''makes debugging interactively easier, by not exiting on errors'''
@@ -92,8 +95,55 @@ class Rephyrence(object):
         for child in node.child_nodes():
             self.get_branch_lengths(child)
 
+    def make_branch_length_df(self):
+        self.branch_lengths_df = pd.DataFrame(self.branch_lengths, columns=['Data'])
+
+    def branch_lengths_histogram(self):
+        '''Returns a simple histogram of branch lengths in the tree in bins half the number of branches'''
+        dataset_len = len(self.branch_lengths)
+        plt.hist(self.branch_lengths_df['Data'], bins=int(dataset_len / 2))
+        plt.show()
 
 
+    def model_distribution(self):
+        list_of_dists = ['alpha', 'anglit', 'arcsine',
+        'beta','betaprime','bradford','burr','burr12','cauchy',
+        'chi','chi2','cosine','dgamma','dweibull','erlang',
+        'expon','exponnorm','exponweib','exponpow','f',
+        'fatiguelife','fisk','foldcauchy','foldnorm','frechet_r',
+        'frechet_l','genlogistic','genpareto','gennorm','genexpon',
+        'genextreme','gausshyper','gamma','gengamma','genhalflogistic',
+        'gilbrat','gompertz','gumbel_r','gumbel_l','halfcauchy',
+        'halflogistic','halfnorm','halfgennorm','hypsecant',
+        'invgamma','invgauss','invweibull','johnsonsb',
+        'johnsonsu','kstwobign','laplace','levy','levy_l',
+        'logistic','loggamma','loglaplace','lognorm','lomax',
+        'maxwell','mielke','nakagami','ncx2','ncf','nct','norm',
+        'pareto','pearson3','powerlaw','powerlognorm','powernorm',
+        'rdist','reciprocal','rayleigh','rice','recipinvgauss',
+        'semicircular','t','triang','truncexpon','truncnorm','tukeylambda',
+        'uniform','vonmises','vonmises_line','wald','weibull_min','weibull_max']
+
+        df = pd.DataFrame(self.branch_lengths, columns=['Data'])
+        # plt.hist(df['Data'], bins=50)
+        # plt.show()
+        dist = getattr(stats, 'norm')
+        parameters = dist.fit(df['Data'])
+        # print(parameters)
+
+        # print(stats.kstest(df['Data'], "norm", parameters))
+
+        results = []
+        for i in list_of_dists:
+            dist = getattr(stats, i)
+            param = dist.fit(df['Data'])
+            a = stats.kstest(df['Data'], i, args=param)
+            results.append((i,a[0],a[1]))
+
+
+        results.sort(key=lambda x:float(x[2]), reverse=True)
+        for j in results:
+            print("{}: statistic={}, pvalue={}".format(j[0], j[1], j[2]))
 
     
 
