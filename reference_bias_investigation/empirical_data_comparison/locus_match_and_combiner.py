@@ -13,8 +13,8 @@ def parse_args():
     parser.add_argument('--manipulate_seqs_folder')
     parser.add_argument('--long_seqs_folder')
     parser.add_argument('--output_dir')
-    # parser.add_argument('--gon_phy', action='store_true', default=False)
-    # parser.add_argument('--rapup', action='store_true', default=False)
+    parser.add_argument('--manip_ref_name', default=None, help='the name of the taxon used as a reference for this run')
+    parser.add_argument('--long_ref_name', default=None, help='the name of the taxon used as a reference for this run')
     return parser.parse_args()
 
 def seq_converter(seq):
@@ -106,22 +106,22 @@ def find_match(long_seq, dict_of_seqs):
     if max(compare_nums) == orig_matches:
         # return 'original'
         output_values.append('original')
-        output_values.append(compare_nums)
+        output_values.append(max(compare_nums))
         return output_values
     elif max(compare_nums) == comp_matches:
         # return 'complement'
         output_values.append('complement')
-        output_values.append(compare_nums)
+        output_values.append(max(compare_nums))
         return output_values
     elif max(compare_nums) == rev_matches:
         # return 'reverse'
         output_values.append('reverse')
-        output_values.append(compare_nums)
+        output_values.append(max(compare_nums))
         return output_values
     elif max(compare_nums) == rev_comp_matches:
         # return 'reverse_complement'
         output_values.append('reverse_complement')
-        output_values.append(compare_nums)
+        output_values.append(max(compare_nums))
         return output_values
 
 
@@ -359,12 +359,23 @@ def find_match(long_seq, dict_of_seqs):
 
 def find_best_matching_locus(dict_of_matches):
     best_match_value = 0
+    best_match_file = ''
+    orientation = ''
+    output = []
     for key, value in dict_of_matches.items():
-        print(key)
-        print(value)
+        if value[1] > best_match_value:
+            best_match_value = value[1]
+            best_match_file = key
+            orientation = value[0]
+    # print(best_match_file)
+    # print(best_match_value)
+    output.append(best_match_file)
+    output.append(orientation)
+
+    return output
 
 
-def match_long_with_loci(manip_seq_path, long_seq_path, output_dir):
+def match_long_with_loci(manip_seq_path, long_seq_path, output_dir, manip_ref, long_ref):
     print("match_long_with_loci")
     kmer_len = 50
     manip_folder_contents = os.listdir(manip_seq_path)
@@ -384,7 +395,9 @@ def match_long_with_loci(manip_seq_path, long_seq_path, output_dir):
     manip_file_count = 0
     long_file_count = 0
 
-    best_matches_file_names_dict = {}
+    no_matches_manip = []
+
+    # best_matches_file_names_dict = {}
 
     print("iterate over manip files")
     for manip_file in manip_folder_contents:
@@ -432,7 +445,10 @@ def match_long_with_loci(manip_seq_path, long_seq_path, output_dir):
                         print(match_maker)
                         best_matches_file_names_dict[long_seq] = match_maker
 
-                        best_matching_locus = find_best_matching_locus(best_matches_file_names_dict)
+                        # best_matching_locus = find_best_matching_locus(best_matches_file_names_dict)
+
+                        # long_to_use = convert_manip[best_matching_locus[0]]
+                        # print("best matching locus is", best_matching_locus[0])
 
                         # find_seq_location = find_boundaries(convert_manip[match_maker], long_contiguous)
 
@@ -447,21 +463,57 @@ def match_long_with_loci(manip_seq_path, long_seq_path, output_dir):
                         # output.write(convert_manip[match_maker])
 
                         # output.close()
-                        # open_long_seq.close()
+                        open_long_seq.close()
                         # open_manip_file.close()
                     
-                    # else:
-                    #     #print("didnt find match between method sequences")
-                    #     #print(manip_taxon + '    ' + long_seq_taxon)
-                    #     long_file_count+=1
-                    #     if long_file_count == num_long_files:
-                    #         print("couldnt find match for this short file")
-                    #         print(manip_taxon)
+                    elif long_seq_taxon == manip_taxon:
+                        if manip_file not in no_matches_manip:
+                            no_matches_manip.append(manip_file)
 
 
                 else:
                     print("didnt find long match")
                     print(find_long_info)
+
+            # Find the locus with the best match
+            print('DICT OF BEST MATCHES')
+            print(best_matches_file_names_dict)
+            
+            best_matching_locus = find_best_matching_locus(best_matches_file_names_dict)
+
+            find_long_info = re.findall(file_info_compile, best_matching_locus[0])
+            if find_long_info:
+
+                long_seq_locus = find_long_info[0][1]
+
+                open_long_seq = open(long_seq_path +'/'+ best_matching_locus[0], 'r')
+                read_long_seq = open_long_seq.read()
+
+                open_manip_file = open(manip_seq_path +'/'+ manip_file,'r')
+                read_manip_file = open_manip_file.read()
+
+                long_seq_split = read_long_seq.split('\n', 1)
+                label = long_seq_split[0]
+                seq = long_seq_split[1]
+                long_contiguous = seq.replace('\n','')
+
+                convert_manip = seq_converter(read_manip_file)
+
+                manip_for_use = convert_manip[best_matching_locus[1]]
+                # print(manip_for_use)
+
+                output = open(output_dir +'/'+ 'combined_' + manip_ref + '_' + manip_locus + '--' + manip_taxon + '--' + long_ref + '_' + long_seq_locus + '.fasta', 'w')
+                output.write('>' + long_ref + '_' + manip_taxon)
+                output.write('\n')
+                output.write(long_contiguous)
+                output.write('\n')
+                output.write('>' + manip_ref + '_' + manip_taxon)
+                output.write('\n')
+                output.write(manip_for_use)
+
+
+
+
 
 
         else:
@@ -471,6 +523,8 @@ def match_long_with_loci(manip_seq_path, long_seq_path, output_dir):
     print("number of files identified by regex methods")
     print(manip_file_count)
     print(long_file_count)
+    print("manip files with no matching files")
+    print(no_matches_manip)
 
 
 
@@ -487,7 +541,7 @@ def main():
 
     print("program found 2nd set of data")
 
-    find_orientation = match_long_with_loci(path_to_manip_folder, path_to_long_seqs_folder, args.output_dir)
+    find_orientation = match_long_with_loci(path_to_manip_folder, path_to_long_seqs_folder, args.output_dir, args.manip_ref_name, args.long_ref_name)
     
 
 
