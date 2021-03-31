@@ -503,11 +503,11 @@ def match_long_with_loci(manip_seq_path, long_seq_path, output_dir, manip_ref, l
                 # print(manip_for_use)
 
                 output = open(output_dir +'/'+ 'combined_' + manip_ref + '_' + manip_locus + '--' + manip_taxon + '--' + long_ref + '_' + long_seq_locus + '.fasta', 'w')
-                output.write('>' + long_ref + '_' + manip_taxon)
+                output.write('>' + long_ref + '_-_' + manip_taxon)
                 output.write('\n')
                 output.write(long_contiguous)
                 output.write('\n')
-                output.write('>' + manip_ref + '_' + manip_taxon)
+                output.write('>' + manip_ref + '_-_' + manip_taxon)
                 output.write('\n')
                 output.write(manip_for_use)
 

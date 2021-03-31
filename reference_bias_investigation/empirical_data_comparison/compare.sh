@@ -13,6 +13,8 @@ mkdir ${outdir}/${ref_1}_${ref_2}_comparison_output
 mkdir ${outdir}/${ref_1}_${ref_2}_comparison_output/locus_alignments
 mkdir ${outdir}/${ref_1}_${ref_2}_comparison_output/${ref_1}_individ_taxa_loci
 mkdir ${outdir}/${ref_1}_${ref_2}_comparison_output/${ref_2}_individ_taxa_loci
+mkdir ${outdir}/${ref_1}_${ref_2}_comparison_output/alignments_for_comparison
+mkdir ${outdir}/${ref_1}_${ref_2}_comparison_output/alignment_comparison_results
 
 ${rapup_path}/modules/locus_position_identifier.py \
 --out_file_dir  ${outdir}/${ref_1}_${ref_2}_comparison_output/${ref_1}_locus_msa_files \
@@ -60,16 +62,24 @@ done
 ${program_path}/reference_bias_investigation/empirical_data_comparison/locus_match_and_combiner.py \
 		--long_seqs_folder ${outdir}/${ref_1}_${ref_2}_comparison_output/${ref_1}_individ_taxa_loci \
 		--manipulate_seqs_folder ${outdir}/${ref_1}_${ref_2}_comparison_output/${ref_1}_individ_taxa_loci \
-		--output_dir ${outdir}/${ref_1}_${ref_2}_comparison_output/locus_alignments
+		--output_dir ${outdir}/${ref_1}_${ref_2}_comparison_output/locus_alignments \
+        --manip_ref_name ${ref_1} \
+        --long_ref_name ${ref_2}
 
+echo "Aligning loci with Mafft before performing comparison"
 
-# for j in $(ls -1 ${outdir}/${ref_1}_${ref_2}_comparison_output/${ref_1}_individ_taxa_loci/);
-# 	do
-# 		# locus=$(basename ${j} | sed -e 's/single_tax-//g')
-# 		# taxon=$(basename ${j} | rev | cut -d "-" -f1 | rev)
-# 		${program_path}/reference_bias_investigation/empirical_data_comparison/locus_match_and_combiner.py \
-# 		--long_seqs_folder ${outdir}/${ref_1}_${ref_2}_comparison_output/${ref_1}_individ_taxa_loci \
-# 		--manipulate_seqs_folder ${outdir}/${ref_1}_${ref_2}_comparison_output/${ref_1}_individ_taxa_loci \
-# 		--output_dir ${outdir}/${ref_1}_${ref_2}_comparison_output/locus_alignments
+for i in $(ls ${outdir}/${ref_1}_${ref_2}_comparison_output/locus_alignments);
+do
+	mafft \
+	--thread 2 \
+	--op 5 \
+	--lexp -0.5 \
+	${outdir}/${ref_1}_${ref_2}_comparison_output/locus_alignments/${i} \
+	> ${outdir}/${ref_1}_${ref_2}_comparison_output/alignments_for_comparison/aligned_${i}
 
-# 	done
+	${program_path}/reference_bias_investigation/empirical_data_comparison/emp_snippy_gapped_align_compared.py \
+	-t \
+	--align_1 ${outdir}/${ref_1}_${ref_2}_comparison_output/alignments_for_comparison/aligned_${i} \
+	--output_stub assessment_${i} \
+	--output_dir ${outdir}/${ref_1}_${ref_2}_comparison_output/alignment_comparison_results
+done

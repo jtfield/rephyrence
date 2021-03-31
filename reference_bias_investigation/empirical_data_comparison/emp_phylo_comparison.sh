@@ -106,12 +106,6 @@ EP_run () {
 # End of EP_run function
 }
 
-EP_basecall () {
-
-	
-
-}
-
 
 if [[ $assembly == "ON" ]];
 then 
